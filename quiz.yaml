@@ -24,6 +24,7 @@
 
 - question: |
     Q3: ระดับการมีส่วนร่วมของประชาชนเป็นอย่างไร? (เลือก ≤2)
+     min_select: 2
   quick:
     - {label: Inform,        code: C1, full: Inform – รับข้อมูลข่าวสาร}
     - {label: Consult,       code: C2, full: Consult – แสดงความคิดเห็น}
