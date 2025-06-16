@@ -145,3 +145,18 @@ def _decide_award(ans: dict[str,str]) -> str:
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
+handler.add(MessageEvent, message=TextMessage)
+def on_text(e):
+    if e.message.text.strip().lower() not in ("เริ่ม", "start", "เริ่มใหม่"):
+        line_bot_api.reply_message(
+            e.reply_token,
+            TextSendMessage('พิมพ์ "เริ่ม" เพื่อเริ่มแบบสอบถาม')
+        )
+        return
+
+    uid = e.source.user_id
+
+    # *** เปลี่ยนตรงนี้ ***
+    user_state[uid] = State(node="G1", picks=0, tags=[])
+    send_q(e.reply_token, "G1")        # ส่งคำถาม Gate-1
