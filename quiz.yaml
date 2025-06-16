@@ -1,111 +1,153 @@
-# quiz.yaml  –  ครบ 14 คำถามตามเอกสาร
-- question: |
+# ---------- Q1 ----------
+- id: Q1
+  question: |
     Q1: จุดเด่นโครงการ/ผลงานของคุณคืออะไร? (เลือก 1)
   quick:
     - label: ทำกับประชาชน
       code: A1
       full: โครงการทำงานร่วมกับประชาชน
+      next: Q2            # ดำเนินไปถามเรื่องประชาชน
     - label: พัฒนาบริการ
       code: A2
       full: พัฒนาบริการให้สะดวกขึ้น
+      next: Q2
     - label: พัฒนาภายใน
       code: A3
       full: พัฒนาระบบบริหารจัดการ (PMQA)
+      next: END_PMQA      # ไป node จบ PMQA
 
-- question: |
+# ---------- Q2 ----------
+- id: Q2
+  question: |
     Q2: ผลงานเกี่ยวข้องกับประชาชนหรือไม่?
   quick:
     - label: ไม่เกี่ยว
       code: B0
       full: ไม่เกี่ยวข้องกับประชาชน
+      next: Q5            # ข้ามส่วนมีส่วนร่วม
     - label: เกี่ยวข้อง
       code: B1
       full: เกี่ยวข้องกับประชาชน
+      next: Q3
 
-- question: |
+# ---------- Q3 ----------
+- id: Q3
+  question: |
     Q3: ระดับการมีส่วนร่วมของประชาชนเป็นอย่างไร? (เลือก ≤2)
-     min_select: 2
+  min_select: 2
   quick:
-    - {label: Inform,        code: C1, full: Inform – รับข้อมูลข่าวสาร}
-    - {label: Consult,       code: C2, full: Consult – แสดงความคิดเห็น}
-    - {label: Involve,       code: C3, full: Involve – ร่วมตัดสินใจ}
-    - {label: Collaborate,   code: C4, full: Collaborate – ร่วมทำงานจริง}
+    - {label: Inform,        code: C1, full: Inform – รับข้อมูลข่าวสาร,    next: Q4A}
+    - {label: Consult,       code: C2, full: Consult – แสดงความคิดเห็น,     next: Q4A}
+    - {label: Involve,       code: C3, full: Involve – ร่วมตัดสินใจ,       next: Q4B}
+    - {label: Collaborate,   code: C4, full: Collaborate – ร่วมทำงานจริง,  next: Q4B}
 
-# ---------- 4A  (กรณี C1/C2) ----------
-- question: |
+# ---------- Q4A (กรณี C1/C2) ----------
+- id: Q4A
+  question: |
     Q4A: องค์กรเปิดเผยข้อมูล/ฟังเสียงอย่างไรบ้าง? (เลือกได้หลายข้อ)
   quick:
-    - {label: เปิดเผยข้อมูล,        code: D1, full: มีระบบเปิดเผยข้อมูล}
-    - {label: ระบบฟังเสียง,        code: D2, full: มีระบบรับฟังความคิดเห็น}
-    - {label: นำผลไปใช้,          code: D3, full: นำความคิดเห็นไปปรับปรุง}
-    - {label: นวัตกรรมเปิดข้อมูล,   code: D4, full: มีนวัตกรรมเปิดข้อมูล}
+    - {label: เปิดเผยข้อมูล,      code: D1, full: มีระบบเปิดเผยข้อมูล}
+    - {label: ระบบฟังเสียง,      code: D2, full: มีระบบรับฟังความคิดเห็น}
+    - {label: นำผลไปใช้,        code: D3, full: นำความคิดเห็นไปปรับปรุง}
+    - {label: นวัตกรรมเปิดข้อมูล, code: D4, full: มีนวัตกรรมเปิดข้อมูล}
+  next: Q5
 
-# ---------- 4B  (กรณี C3/C4) ----------
-- question: |
+# ---------- Q4B (กรณี C3/C4) ----------
+- id: Q4B
+  question: |
     Q4B: ประชาชนมีส่วนร่วมขั้นตอนใดบ้าง? (เลือกได้หลายข้อ)
   quick:
-    - {label: แก้ปัญหาพื้นที่,    code: E1, full: ร่วมแก้ปัญหาในพื้นที่}
-    - {label: ร่วมออกแบบ,        code: E2, full: ร่วมออกแบบนโยบาย/บริการ}
-    - {label: ลงมือทำ,           code: E3, full: ลงมือทำโครงการกับรัฐ}
+    - {label: แก้ปัญหาพื้นที่,  code: E1, full: ร่วมแก้ปัญหาในพื้นที่}
+    - {label: ร่วมออกแบบ,      code: E2, full: ร่วมออกแบบนโยบาย/บริการ}
+    - {label: ลงมือทำ,         code: E3, full: ลงมือทำโครงการกับรัฐ}
+  next: Q5
 
-- question: |
+# ---------- Q5 ----------
+- id: Q5
+  question: |
     Q5: โครงการนี้ดำเนินมากี่ปี?
   quick:
-    - {label: <1 ปี,         code: F0, full: ดำเนินงานน้อยกว่า 1 ปี}
-    - {label: ≥1 ปี(ไม่เคย), code: F1, full: มากกว่า 1 ปี และไม่เคยได้รางวัล}
-    - {label: เคยได้รางฯ,    code: F2, full: เคยได้รับรางวัลมาแล้ว}
+    - {label: <1 ปี,           code: F0, full: ดำเนินงานน้อยกว่า 1 ปี,         next: END_SHORT}
+    - {label: ≥1 ปี(ไม่เคย),   code: F1, full: มากกว่า 1 ปี และไม่เคยได้รางวัล, next: Q6}
+    - {label: เคยได้รางฯ,      code: F2, full: เคยได้รับรางวัลมาแล้ว,           next: Q6}
 
-- question: |
+# ---------- Q6 ----------
+- id: Q6
+  question: |
     Q6: มีการขยายผลหรือต่อยอดหรือไม่?
   quick:
-    - {label: ขยายพื้นที่,   code: G1, full: ขยายไปพื้นที่อื่น ≥2}
-    - {label: พัฒนาเพิ่ม,    code: G2, full: พัฒนาเทคโนโลยี/ระบบ/นโยบายเพิ่ม}
-    - {label: ไม่มี,        code: G0, full: ไม่มีการขยายผล}
+    - {label: ขยายพื้นที่, code: G1, full: ขยายไปพื้นที่อื่น ≥2, next: Q7}
+    - {label: พัฒนาเพิ่ม,  code: G2, full: พัฒนาเทคโนโลยี/ระบบ/นโยบายเพิ่ม, next: Q7}
+    - {label: ไม่มี,      code: G0, full: ไม่มีการขยายผล,                    next: END_COMPLETE}
 
-- question: |
+# ---------- Q7 ----------
+- id: Q7
+  question: |
     Q7: แนวทางขยายผลเป็นแบบใด?
   quick:
-    - {label: ขยายพื้นที่, code: H1, full: เลื่องลือ – ขยายพื้นที่}
-    - {label: ต่อยอด,      code: H2, full: เลื่องลือ – พัฒนาต่อยอด}
+    - {label: ขยายพื้นที่, code: H1, full: เลื่องลือ – ขยายพื้นที่, next: Q8}
+    - {label: ต่อยอด,      code: H2, full: เลื่องลือ – พัฒนาต่อยอด, next: Q8}
 
-# ---------- หมวด B บริการภาครัฐ ----------
-- question: |
+# ---------- หมวดบริการภาครัฐ ----------
+- id: Q8
+  question: |
     Q8: ผลงานของคุณเป็นสิ่งใหม่/วิธีใหม่หรือไม่?
   quick:
-    - {label: ใช่,   code: I1, full: เป็นนวัตกรรมใหม่}
-    - {label: ไม่ใช่, code: I0, full: ไม่ใช่สิ่งใหม่}
+    - {label: ใช่,   code: I1, full: เป็นนวัตกรรมใหม่, next: Q8_1}
+    - {label: ไม่ใช่, code: I0, full: ไม่ใช่สิ่งใหม่,   next: Q8_1}
 
-- question: |
+- id: Q8_1
+  question: |
     Q8.1: เป็นการขยายผลงานที่เคยได้รางวัลหรือไม่?
   quick:
-    - {label: ใช่,   code: J1, full: ขยายผลจากรางวัลเดิม}
-    - {label: ไม่ใช่, code: J0, full: ไม่ใช่การขยายผล}
+    - {label: ใช่,   code: J1, full: ขยายผลจากรางวัลเดิม, next: Q8_2}
+    - {label: ไม่ใช่, code: J0, full: ไม่ใช่การขยายผล,     next: Q8_2}
 
-- question: |
+- id: Q8_2
+  question: |
     Q8.2: มีการเชื่อมโยงข้อมูลดิจิทัล ≥3 หน่วยงานหรือไม่?
   quick:
-    - {label: ใช่,   code: K1, full: เชื่อมโยงข้อมูล ≥3 หน่วยงาน}
-    - {label: ไม่ใช่, code: K0, full: ไม่เชื่อมโยงระดับนั้น}
+    - {label: ใช่,   code: K1, full: เชื่อมโยงข้อมูล ≥3 หน่วยงาน, next: Q8_3}
+    - {label: ไม่ใช่, code: K0, full: ไม่เชื่อมโยงระดับนั้น,        next: Q8_3}
 
-- question: |
+- id: Q8_3
+  question: |
     Q8.3: โครงการช่วยลดขั้นตอน/ลดต้นทุน End-to-End ใช่หรือไม่?
   quick:
-    - {label: ใช่,   code: L1, full: ลดขั้นตอน End-to-End}
-    - {label: ไม่ใช่, code: L0, full: ไม่เข้าเกณฑ์นี้}
+    - {label: ใช่,   code: L1, full: ลดขั้นตอน End-to-End, next: Q8_4}
+    - {label: ไม่ใช่, code: L0, full: ไม่เข้าเกณฑ์นี้,      next: Q8_4}
 
-- question: |
+- id: Q8_4
+  question: |
     Q8.4: เป็นการรวมศูนย์บริการ/คู่มือกลาง/ e-Service หรือไม่?
   quick:
-    - {label: ใช่,   code: M1, full: รวมศูนย์บริการ/e-Service}
-    - {label: ไม่ใช่, code: M0, full: ไม่ใช่}
+    - {label: ใช่,   code: M1, full: รวมศูนย์บริการ/e-Service, next: Q8_5}
+    - {label: ไม่ใช่, code: M0, full: ไม่ใช่,                     next: Q8_5}
 
-- question: |
+- id: Q8_5
+  question: |
     Q8.5: ช่วยขับเคลื่อน Agenda สำคัญหรือไม่?
   quick:
-    - {label: ใช่,   code: N1, full: ขับเคลื่อนนโยบายสำคัญ}
-    - {label: ไม่ใช่, code: N0, full: ยังไม่ตรง}
+    - {label: ใช่,   code: N1, full: ขับเคลื่อนนโยบายสำคัญ, next: END_ELIGIBLE}
+    - {label: ไม่ใช่, code: N0, full: ยังไม่ตรง,             next: END_INELIGIBLE}
 
+# ---------- END NODES ----------
+- id: END_PMQA
+  end: |
+    ✅ ผลเบื้องต้น: เข้ากลุ่ม “PMQA – ยกระดับระบบบริหารจัดการองค์กร”
 
+- id: END_SHORT
+  end: |
+    ❌ ผลเบื้องต้น: โครงการต้องดำเนินงานอย่างน้อย 1 ปี
 
+- id: END_COMPLETE
+  end: |
+    ✅ ผลเบื้องต้น: ตรงตามเกณฑ์ สามารถสมัครรางวัลได้
 
+- id: END_ELIGIBLE
+  end: |
+    ✅ ผลเบื้องต้น: มีคุณสมบัติเข้าชิงรางวัลนวัตกรรม/บริการ
 
+- id: END_INELIGIBLE
+  end: |
+    ❌ ผลเบื้องต้น: คุณสมบัติยังไม่ครบเกณฑ์
