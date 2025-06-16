@@ -1,3 +1,3 @@
-flask
-line-bot-sdk>=3.3,<4
-pyyaml
+Flask==3.0.2
+line-bot-sdk==3.*
+PyYAML==6.*
