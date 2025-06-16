@@ -1,43 +1,52 @@
-# main.py  (แก้ version)
+# main.py  –  Smart-Quiz bot (PGA)
 import os, yaml, collections
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import *
+from linebot.models import (MessageEvent, TextMessage, TextSendMessage,
+                            PostbackEvent, QuickReply, QuickReplyButton,
+                            PostbackAction)
 
 # ---------- โหลด flow ----------
 with open("quiz.yaml", encoding="utf-8") as f:
-    FLOW = {n["id"]: n for n in yaml.safe_load(f)}
+    raw_nodes = yaml.safe_load(f)
 
-def make_quick(btns):
-    """สร้าง quick-reply ให้ถูกเกณฑ์ (label ≤20)"""
-    return QuickReply(items=[
-        QuickReplyButton(
-            action=PostbackAction(
-                label=item["label"][:20],
-                data=item.get("next", ""),           # ส่ง next node (อาจว่าง)
-                display_text=item["full"]))
-        for item in btns
-    ])
+# map id -> node dict   (เพิ่ม index ให้อัตโนมัติถ้าไม่มี id)
+FLOW = {}
+for i, n in enumerate(raw_nodes, 1):
+    if "id" not in n:
+        n["id"] = f"Q{i}"
+    FLOW[n["id"]] = n
 
-# ---------- LINE objects ----------
+# ---------- LINE/Flask ----------
 app          = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("CHANNEL_ACCESS_TOKEN"))
 handler      = WebhookHandler(os.getenv("CHANNEL_SECRET"))
 
-State = collections.namedtuple("State", "node picks codes")
-user_state: dict[str, State] = {}        # {uid: State}
+State = collections.namedtuple("State", "node picks answers meta")
+#  meta ใช้เก็บ flag gate / highest_level / impact ฯลฯ
+user_state: dict[str, State] = {}
 
 # ---------- helper ----------
-def send_q(token: str, node_id: str):
+def to_quick(items):
+    return QuickReply(items=[
+        QuickReplyButton(
+            action=PostbackAction(
+                label=i["label"][:20],          # 20 char limit
+                data=i.get("next","") or i["code"],
+                display_text=i["full"])
+        ) for i in items
+    ])
+
+def send_q(reply_token, node_id):
     node = FLOW[node_id]
     line_bot_api.reply_message(
-        token,
-        TextSendMessage(node["question"], quick_reply=make_quick(node["quick"]))
+        reply_token,
+        TextSendMessage(node["question"], quick_reply=to_quick(node["quick"]))
     )
 
-def finish(token: str, msg: str):
-    line_bot_api.reply_message(token, TextSendMessage(msg))
+def finish(reply_token, msg):
+    line_bot_api.reply_message(reply_token, TextSendMessage(msg))
 
 # ---------- webhook ----------
 @app.route("/callback", methods=["POST"])
@@ -50,64 +59,87 @@ def callback():
         abort(400)
     return "OK"
 
-# ---------- เริ่มต้นด้วยข้อความ ----------
+# ---------- ข้อความ ----------
 @handler.add(MessageEvent, message=TextMessage)
-def handle_text(e: MessageEvent):
-    txt = e.message.text.strip().lower()
-    if txt not in ("เริ่ม", "start", "เริ่มใหม่"):
+def on_text(e: MessageEvent):
+    command = e.message.text.strip().lower()
+    if command not in ("เริ่ม", "start", "เริ่มใหม่"):
         line_bot_api.reply_message(
             e.reply_token, TextSendMessage('พิมพ์ "เริ่ม" เพื่อเริ่มแบบสอบถาม'))
         return
 
+    # reset / init
     uid = e.source.user_id
-    user_state[uid] = State(node="Q1", picks=0, codes=[])
+    user_state[uid] = State(node="Q1", picks=0, answers={}, meta={})
     send_q(e.reply_token, "Q1")
 
-# ---------- postback ----------
+# ---------- Postback ----------
 @handler.add(PostbackEvent)
-def handle_postback(e: PostbackEvent):
+def on_postback(e: PostbackEvent):
     uid = e.source.user_id
     if uid not in user_state:
-        line_bot_api.reply_message(
-            e.reply_token, TextSendMessage('พิมพ์ "เริ่ม" ก่อนนะคะ'))
-        return
+        finish(e.reply_token, 'พิมพ์ "เริ่ม" ก่อนนะคะ');  return
 
-    st   = user_state[uid]
+    st = user_state[uid]
     node = FLOW[st.node]
 
-    # หา choice ที่ผู้ใช้เลือก
+    # ------ หา choice ที่ user เลือก ------
+    # data อาจเป็น next id หรือ code; ตรวจทั้งสอง
     data = e.postback.data
     try:
-        choice = next(c for c in node["quick"]
-                      if c.get("next", "") == data or c["label"][:20] == data)
+        choice = next(i for i in node["quick"]
+                      if i["code"] == data or i.get("next","") == data)
     except StopIteration:
-        line_bot_api.reply_message(e.reply_token,
-            TextSendMessage("⚠️ เลือกตัวเลือกไม่ถูกต้อง ลองใหม่อีกครั้ง"))
-        return
+        finish(e.reply_token, "เลือกจากปุ่มเท่านั้นนะคะ");  return
 
-    codes = st.codes + [choice["code"]]
-    picks = st.picks + 1
-    next_node = choice.get("next") or node.get("next")  # อาจว่าง
+    # ------ บันทึกคำตอบ ------
+    answers = dict(st.answers)
+    answers[node["id"]] = choice["code"]
 
-    # --- ยังเลือกไม่ครบตาม min_select ---
-    if node.get("min_select") and picks < node["min_select"]:
-        user_state[uid] = State(node=st.node, picks=picks, codes=codes)
+    picks   = st.picks + 1
+    next_id = choice.get("next") or node.get("next")
+
+    # ------ ตรวจ min_select ------
+    if node.get("min_select", 1) > picks:
+        user_state[uid] = State(node=st.node, picks=picks,
+                                answers=answers, meta=st.meta)
         send_q(e.reply_token, st.node)
         return
 
-    # --- ไป node ถัดไป ---
-    if next_node and next_node in FLOW:
-        user_state[uid] = State(node=next_node, picks=0, codes=codes)
-        send_q(e.reply_token, next_node)
+    # ------ ถึง node สิ้นสุด? ------
+    if next_id is None:
+        result_msg = _decide_award(answers)      # สรุปผลตาม rule
+        finish(e.reply_token, result_msg)
+        user_state.pop(uid, None)
         return
 
-    # --- node จบ ---
-    end_msg = FLOW[next_node]["end"] if next_node else node.get("end")
-    if end_msg:
-        finish(e.reply_token, end_msg)
-    else:
-        finish(e.reply_token, "⚠️ flow ผิดพลาด ไม่พบข้อความจบ")
-    user_state.pop(uid, None)
+    # ------ ไป node ถัดไป ------
+    if next_id not in FLOW:
+        finish(e.reply_token, f"Flow error: ไม่มี node {next_id}")
+        user_state.pop(uid, None); return
+
+    user_state[uid] = State(node=next_id, picks=0,
+                            answers=answers, meta=st.meta)
+    send_q(e.reply_token, next_id)
+
+# ---------- Rule-Engine ----------
+def _decide_award(ans: dict[str,str]) -> str:
+    """รับ dict {'Q1':'A1', 'Q2':'B0', ... } → คืนผลลัพธ์เป็น string"""
+    a = ans.get("Q2")  # เคยได้รางวัลหรือไม่
+    lvl = {"C1":1,"C2":2,"C3":3,"C4":4}.get(ans.get("Q3"),0)
+    impact = {"I":1,"II":2,"III":3}.get(ans.get("Q3-a"),1)
+    xp = {"X1","X2"} & set(ans.values())
+
+    # ตัวอย่าง rule – ปรับให้ตรง table R-xxx
+    if a == "A1" and lvl <= 2:
+        return "แนะนำสมัครรางวัล *เปิดใจใกล้ชิดประชาชน (Open Governance)*"
+    if a == "A1" and lvl >= 3 and impact >= 2:
+        return "แนะนำสมัครรางวัล *สัมฤทธิผลประชาชนมีส่วนร่วม*"
+    if a in ("B","C") and "X1" in xp:
+        return "แนะนำสมัครรางวัล *เลื่องลือขยายผล – ขยายพื้นที่*"
+    if a in ("B","C") and "X2" in xp:
+        return "แนะนำสมัครรางวัล *เลื่องลือขยายผล – พัฒนาต่อยอด*"
+    return "ยังไม่เข้าเกณฑ์รางวัลใด / โปรดปรึกษาทีมงาน"
 
 # ---------- run ----------
 if __name__ == "__main__":
